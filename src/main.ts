@@ -2,6 +2,7 @@ import { Plugin } from 'obsidian';
 import type { WorkspaceLeaf } from 'obsidian';
 import { VIEW_ICON, VIEW_NAME, VIEW_TYPE } from './constants';
 import { NavigatorView } from './view/navigator-view';
+import { VaultGuideSettingTab } from './settings-tab';
 import {
 	DEFAULT_SETTINGS,
 	normalizeSettings,
@@ -19,6 +20,8 @@ export default class VaultGuidePlugin extends Plugin {
 			(leaf) => new NavigatorView(leaf, this),
 		);
 
+		this.addSettingTab(new VaultGuideSettingTab(this.app, this));
+
 		this.addRibbonIcon(VIEW_ICON, `Open ${VIEW_NAME}`, () => {
 			void this.activateView();
 		});
@@ -32,6 +35,14 @@ export default class VaultGuidePlugin extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+	}
+
+	/** Re-render every open navigator, e.g. after settings change. */
+	refreshViews(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) {
+			const view = leaf.view;
+			if (view instanceof NavigatorView) view.refresh();
+		}
 	}
 
 	/** Reveal the navigator, reusing an existing leaf or opening one on the left. */

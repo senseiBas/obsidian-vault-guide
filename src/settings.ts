@@ -14,12 +14,21 @@ export interface VaultGuideSettings {
 	folderIcons: Record<string, string>;
 	/** Collapsed folder paths, so the tree remembers its expand state. */
 	collapsed: string[];
+	/**
+	 * Regular expressions (as strings), each tested against a folder's name.
+	 * Matching folders are hidden from the tree unless `showHidden` is on.
+	 */
+	hiddenFolderPatterns: string[];
+	/** When true, hidden folders are still shown, greyed out. */
+	showHidden: boolean;
 }
 
 export const DEFAULT_SETTINGS: VaultGuideSettings = {
 	folderOrder: {},
 	folderIcons: {},
 	collapsed: [],
+	hiddenFolderPatterns: [],
+	showHidden: false,
 };
 
 function isStringRecord(value: unknown): value is Record<string, string> {
@@ -55,5 +64,11 @@ export function normalizeSettings(raw: unknown): VaultGuideSettings {
 					(path): path is string => typeof path === 'string',
 				)
 			: [],
+		hiddenFolderPatterns: Array.isArray(data.hiddenFolderPatterns)
+			? data.hiddenFolderPatterns.filter(
+					(pattern): pattern is string => typeof pattern === 'string',
+				)
+			: [],
+		showHidden: typeof data.showHidden === 'boolean' ? data.showHidden : false,
 	};
 }

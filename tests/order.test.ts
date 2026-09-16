@@ -115,6 +115,8 @@ describe('migrateSettingsPaths', () => {
 				projects: ['projects/alpha', 'projects/beta'],
 			},
 			collapsed: ['projects', 'projects/alpha', 'other'],
+			hiddenFolderPatterns: ['^_'],
+			showHidden: false,
 		};
 
 		const migrated = migrateSettingsPaths(settings, 'projects', 'work');
@@ -129,6 +131,8 @@ describe('migrateSettingsPaths', () => {
 			work: ['work/alpha', 'work/beta'],
 		});
 		expect(migrated.collapsed).toEqual(['work', 'work/alpha', 'other']);
+		expect(migrated.hiddenFolderPatterns).toEqual(['^_']);
+		expect(migrated.showHidden).toBe(false);
 	});
 
 	it('does not mutate the original settings', () => {
@@ -136,6 +140,8 @@ describe('migrateSettingsPaths', () => {
 			folderIcons: { old: '📁' },
 			folderOrder: { '/': ['old'] },
 			collapsed: ['old'],
+			hiddenFolderPatterns: [],
+			showHidden: true,
 		};
 		migrateSettingsPaths(settings, 'old', 'new');
 		expect(settings.folderIcons).toEqual({ old: '📁' });

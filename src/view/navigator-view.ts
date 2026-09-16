@@ -6,6 +6,7 @@ import {
 	orderFolderPaths,
 	reorderSiblings,
 } from '../tree/order';
+import { compileHidePatterns, isHiddenName } from '../tree/hidden';
 import { requestEmoji } from './emoji-picker';
 import type VaultGuidePlugin from '../main';
 
@@ -22,6 +23,10 @@ export class NavigatorView extends ItemView {
 	private treeEl!: HTMLElement;
 	/** Path of the folder currently being dragged, if any. */
 	private dragPath: string | null = null;
+	/** Compiled hide patterns for the current render pass. */
+	private hidePatterns: RegExp[] = [];
+	/** The eye toggle button, so its icon can follow the showHidden state. */
+	private hiddenToggleEl: HTMLElement | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: VaultGuidePlugin) {
 		super(leaf);
@@ -69,6 +74,31 @@ export class NavigatorView extends ItemView {
 		});
 		setIcon(expandBtn, 'chevrons-up-down');
 		expandBtn.addEventListener('click', () => this.expandAll());
+
+		const hiddenBtn = toolbarEl.createEl('button', {
+			cls: 'vault-guide-toolbar-btn',
+		});
+		this.hiddenToggleEl = hiddenBtn;
+		this.updateHiddenToggle();
+		hiddenBtn.addEventListener('click', () => this.toggleHidden());
+	}
+
+	private toggleHidden(): void {
+		this.plugin.settings.showHidden = !this.plugin.settings.showHidden;
+		void this.plugin.saveSettings();
+		this.updateHiddenToggle();
+		this.render();
+	}
+
+	private updateHiddenToggle(): void {
+		if (!this.hiddenToggleEl) return;
+		const showing = this.plugin.settings.showHidden;
+		this.hiddenToggleEl.toggleClass('is-active', showing);
+		this.hiddenToggleEl.setAttribute(
+			'aria-label',
+			showing ? 'Hide hidden folders' : 'Show hidden folders',
+		);
+		setIcon(this.hiddenToggleEl, showing ? 'eye' : 'eye-off');
 	}
 
 	private collapseAll(): void {
@@ -122,8 +152,17 @@ export class NavigatorView extends ItemView {
 		this.registerEvent(this.app.vault.on('delete', () => this.render()));
 	}
 
+	/** Public re-render hook, used after settings changes. */
+	refresh(): void {
+		this.updateHiddenToggle();
+		this.render();
+	}
+
 	private render(): void {
 		if (!this.treeEl) return;
+		this.hidePatterns = compileHidePatterns(
+			this.plugin.settings.hiddenFolderPatterns,
+		);
 		this.treeEl.empty();
 		this.renderChildren(this.treeEl, this.app.vault.getRoot());
 	}
@@ -140,13 +179,21 @@ export class NavigatorView extends ItemView {
 			this.plugin.settings.folderOrder[parent.path],
 		);
 
+		const showHidden = this.plugin.settings.showHidden;
 		for (const path of ordered) {
 			const folder = byPath.get(path);
-			if (folder) this.renderFolder(containerEl, folder);
+			if (!folder) continue;
+			const hidden = isHiddenName(folder.name, this.hidePatterns);
+			if (hidden && !showHidden) continue;
+			this.renderFolder(containerEl, folder, hidden);
 		}
 	}
 
-	private renderFolder(containerEl: HTMLElement, folder: TFolder): void {
+	private renderFolder(
+		containerEl: HTMLElement,
+		folder: TFolder,
+		hidden: boolean,
+	): void {
 		const hasSubfolders = folder.children.some(
 			(child) => child instanceof TFolder,
 		);
@@ -155,6 +202,7 @@ export class NavigatorView extends ItemView {
 		const rowEl = containerEl.createDiv('vault-guide-row');
 		rowEl.dataset.path = folder.path;
 		rowEl.setAttribute('draggable', 'true');
+		if (hidden) rowEl.addClass('is-hidden-folder');
 
 		const chevron = rowEl.createSpan('vault-guide-chevron');
 		if (hasSubfolders) {

@@ -27,6 +27,22 @@
 	color: var(--text-normal);
 }
 
+.vault-guide-toolbar-btn.is-active {
+	color: var(--interactive-accent);
+}
+
+.vault-guide-row.is-hidden-folder .vault-guide-icon,
+.vault-guide-row.is-hidden-folder .vault-guide-name {
+	color: var(--text-faint);
+	font-style: italic;
+}
+
+.vault-guide-pattern-input {
+	width: 100%;
+	font-family: var(--font-monospace);
+	resize: vertical;
+}
+
 .vault-guide-tree {
 	flex: 1 1 auto;
 	overflow-y: auto;

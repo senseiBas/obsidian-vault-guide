@@ -97,5 +97,5 @@ export function migrateSettingsPaths(
 
 	const collapsed = settings.collapsed.map(rewrite);
 
-	return { folderIcons, folderOrder, collapsed };
+	return { ...settings, folderIcons, folderOrder, collapsed };
 }
