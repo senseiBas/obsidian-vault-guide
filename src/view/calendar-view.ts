@@ -112,6 +112,13 @@ export class CalendarView extends ItemView {
 	private renderHeader(): void {
 		const headerEl = this.contentEl.createDiv('vault-guide-cal-header');
 
+		const prevYear = headerEl.createEl('button', {
+			cls: 'vault-guide-toolbar-btn',
+			attr: { 'aria-label': 'Previous year' },
+		});
+		setIcon(prevYear, 'chevrons-left');
+		prevYear.addEventListener('click', () => this.goToMonth(-12));
+
 		const prev = headerEl.createEl('button', {
 			cls: 'vault-guide-toolbar-btn',
 			attr: { 'aria-label': 'Previous month' },
@@ -130,6 +137,13 @@ export class CalendarView extends ItemView {
 		});
 		setIcon(next, 'chevron-right');
 		next.addEventListener('click', () => this.goToMonth(1));
+
+		const nextYear = headerEl.createEl('button', {
+			cls: 'vault-guide-toolbar-btn',
+			attr: { 'aria-label': 'Next year' },
+		});
+		setIcon(nextYear, 'chevrons-right');
+		nextYear.addEventListener('click', () => this.goToMonth(12));
 
 		const today = headerEl.createEl('button', {
 			cls: 'vault-guide-toolbar-btn vault-guide-cal-today-btn',
