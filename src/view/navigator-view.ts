@@ -520,6 +520,16 @@ export class NavigatorView extends ItemView {
 					.onClick(() => this.setIconValue(folder.path, null)),
 			);
 		}
+
+		menu.addSeparator();
+		menu.addItem((item) =>
+			item
+				.setTitle('Delete folder')
+				.setIcon('trash')
+				.onClick(() => {
+					void this.app.fileManager.promptForDeletion(folder);
+				}),
+		);
 		menu.showAtMouseEvent(event);
 	}
 
