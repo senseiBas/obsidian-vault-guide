@@ -22,8 +22,8 @@ const DRAG_MIME = 'application/x-vault-guide-folder';
 export class NavigatorView extends ItemView {
 	private readonly plugin: VaultGuidePlugin;
 	private treeEl!: HTMLElement;
-	/** Path of the folder currently being dragged, if any. */
-	private dragPath: string | null = null;
+	/** The item currently being dragged, if any. */
+	private dragged: { path: string; isFolder: boolean } | null = null;
 	/** Compiled hide patterns for the current render pass. */
 	private hidePatterns: RegExp[] = [];
 	/** The eye toggle button, so its icon can follow the showHidden state. */
@@ -51,6 +51,7 @@ export class NavigatorView extends ItemView {
 		this.contentEl.addClass('vault-guide');
 		this.buildToolbar();
 		this.treeEl = this.contentEl.createDiv('vault-guide-tree');
+		this.setupRootDrop();
 		this.registerVaultEvents();
 		this.render();
 	}
@@ -258,7 +259,7 @@ export class NavigatorView extends ItemView {
 			this.showContextMenu(event, folder),
 		);
 
-		this.setupDrag(rowEl, folder);
+		this.setupFolderDrag(rowEl, folder);
 
 		if (hasChildren && !collapsed) {
 			const childrenEl = containerEl.createDiv('vault-guide-children');
@@ -269,6 +270,7 @@ export class NavigatorView extends ItemView {
 	private renderFile(containerEl: HTMLElement, file: TFile): void {
 		const rowEl = containerEl.createDiv('vault-guide-row vault-guide-file');
 		rowEl.dataset.path = file.path;
+		rowEl.setAttribute('draggable', 'true');
 
 		rowEl.createSpan('vault-guide-chevron').addClass('is-empty');
 
@@ -287,51 +289,177 @@ export class NavigatorView extends ItemView {
 			this.app.workspace.trigger('file-menu', menu, file, 'vault-guide');
 			menu.showAtMouseEvent(event);
 		});
+
+		this.makeDraggable(rowEl, file.path, false);
+		// Files are not drop targets themselves; swallow the event so it does not
+		// bubble up to the root drop handler while hovering another file.
+		rowEl.addEventListener('dragover', (event) => event.stopPropagation());
 	}
 
-	private setupDrag(rowEl: HTMLElement, folder: TFolder): void {
+	/** Wire the shared drag-start / drag-end behaviour for a row. */
+	private makeDraggable(
+		rowEl: HTMLElement,
+		path: string,
+		isFolder: boolean,
+	): void {
 		rowEl.addEventListener('dragstart', (event) => {
-			this.dragPath = folder.path;
+			event.stopPropagation();
+			this.dragged = { path, isFolder };
 			if (event.dataTransfer) {
-				event.dataTransfer.setData(DRAG_MIME, folder.path);
+				event.dataTransfer.setData(DRAG_MIME, path);
 				event.dataTransfer.effectAllowed = 'move';
 			}
 			rowEl.addClass('is-dragging');
 		});
 		rowEl.addEventListener('dragend', () => {
-			this.dragPath = null;
+			this.dragged = null;
 			rowEl.removeClass('is-dragging');
 			this.clearDropIndicator(rowEl);
 		});
+	}
+
+	private setupFolderDrag(rowEl: HTMLElement, folder: TFolder): void {
+		this.makeDraggable(rowEl, folder.path, true);
+
 		rowEl.addEventListener('dragover', (event) => {
-			if (!this.isSiblingDrag(folder)) return;
+			const zone = this.dropZone(event, rowEl, folder);
+			if (zone === 'none') return;
 			event.preventDefault();
+			event.stopPropagation();
 			if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-			const before = this.isAbove(event, rowEl);
-			rowEl.toggleClass('is-drop-before', before);
-			rowEl.toggleClass('is-drop-after', !before);
+			rowEl.toggleClass('is-drop-before', zone === 'before');
+			rowEl.toggleClass('is-drop-after', zone === 'after');
+			rowEl.toggleClass('is-drop-into', zone === 'into');
 		});
 		rowEl.addEventListener('dragleave', () =>
 			this.clearDropIndicator(rowEl),
 		);
 		rowEl.addEventListener('drop', (event) => {
+			const dragged = this.dragged;
+			const zone = this.dropZone(event, rowEl, folder);
 			this.clearDropIndicator(rowEl);
-			if (!this.isSiblingDrag(folder) || !this.dragPath) return;
+			if (!dragged || zone === 'none') return;
 			event.preventDefault();
-			const before = this.isAbove(event, rowEl);
-			this.reorderWithin(folder.parent, this.dragPath, folder.path, before);
-			this.dragPath = null;
+			event.stopPropagation();
+			if (zone === 'before' || zone === 'after') {
+				this.reorderWithin(
+					folder.parent,
+					dragged.path,
+					folder.path,
+					zone === 'before',
+				);
+			} else {
+				void this.moveInto(dragged.path, folder.path);
+			}
+			this.dragged = null;
 		});
 	}
 
-	/** True when the dragged folder shares a parent with `target` (not itself). */
-	private isSiblingDrag(target: TFolder): boolean {
-		if (!this.dragPath || this.dragPath === target.path) return false;
-		const dragged = this.app.vault.getAbstractFileByPath(this.dragPath);
-		return (
-			dragged instanceof TFolder &&
-			dragged.parent?.path === target.parent?.path
-		);
+	/**
+	 * Decide what a drop on this folder row means:
+	 * - `before` / `after`: reorder among siblings (folder dragged onto a sibling,
+	 *   near its top/bottom edge). View-only.
+	 * - `into`: move the dragged item inside this folder (real file-system move).
+	 * - `none`: not a valid drop here.
+	 */
+	private dropZone(
+		event: DragEvent,
+		rowEl: HTMLElement,
+		folder: TFolder,
+	): 'before' | 'after' | 'into' | 'none' {
+		const dragged = this.dragged;
+		if (!dragged || dragged.path === folder.path) return 'none';
+
+		const reorderable =
+			dragged.isFolder && this.sameParent(dragged.path, folder.path);
+		if (reorderable) {
+			const rect = rowEl.getBoundingClientRect();
+			const offset = event.clientY - rect.top;
+			const edge = rect.height * 0.3;
+			if (offset < edge) return 'before';
+			if (offset > rect.height - edge) return 'after';
+			return this.canMoveInto(dragged, folder.path) ? 'into' : 'none';
+		}
+		return this.canMoveInto(dragged, folder.path) ? 'into' : 'none';
+	}
+
+	/** True when moving `dragged` into `destFolderPath` would be a valid move. */
+	private canMoveInto(
+		dragged: { path: string; isFolder: boolean },
+		destFolderPath: string,
+	): boolean {
+		const item = this.app.vault.getAbstractFileByPath(dragged.path);
+		if (!item) return false;
+		const rootPath = this.app.vault.getRoot().path;
+		if ((item.parent?.path ?? rootPath) === destFolderPath) return false;
+		if (dragged.isFolder) {
+			if (destFolderPath === dragged.path) return false;
+			if (destFolderPath.startsWith(`${dragged.path}/`)) return false;
+		}
+		return true;
+	}
+
+	private async moveInto(
+		sourcePath: string,
+		destFolderPath: string,
+	): Promise<void> {
+		const item = this.app.vault.getAbstractFileByPath(sourcePath);
+		if (!item) return;
+		if (!this.canMoveInto({ path: sourcePath, isFolder: item instanceof TFolder }, destFolderPath)) {
+			if (
+				item instanceof TFolder &&
+				(destFolderPath === item.path ||
+					destFolderPath.startsWith(`${item.path}/`))
+			) {
+				new Notice('Cannot move a folder into itself.');
+			}
+			return;
+		}
+		const rootPath = this.app.vault.getRoot().path;
+		const destDir = destFolderPath === rootPath ? '' : destFolderPath;
+		const newPath = destDir ? `${destDir}/${item.name}` : item.name;
+		try {
+			await this.app.fileManager.renameFile(item, newPath);
+		} catch (error) {
+			new Notice(
+				`Could not move: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+			);
+		}
+	}
+
+	/** True when two paths currently live in the same parent folder. */
+	private sameParent(a: string, b: string): boolean {
+		const fa = this.app.vault.getAbstractFileByPath(a);
+		const fb = this.app.vault.getAbstractFileByPath(b);
+		return !!fa && !!fb && fa.parent?.path === fb.parent?.path;
+	}
+
+	/** Dropping on the empty area of the tree moves the item to the vault root. */
+	private setupRootDrop(): void {
+		const rootPath = this.app.vault.getRoot().path;
+		this.treeEl.addEventListener('dragover', (event) => {
+			if (!this.dragged || !this.canMoveInto(this.dragged, rootPath)) {
+				return;
+			}
+			event.preventDefault();
+			if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+			this.treeEl.addClass('is-drop-root');
+		});
+		this.treeEl.addEventListener('dragleave', (event) => {
+			if (event.target === this.treeEl) {
+				this.treeEl.removeClass('is-drop-root');
+			}
+		});
+		this.treeEl.addEventListener('drop', (event) => {
+			this.treeEl.removeClass('is-drop-root');
+			const dragged = this.dragged;
+			if (!dragged) return;
+			event.preventDefault();
+			void this.moveInto(dragged.path, rootPath);
+			this.dragged = null;
+		});
 	}
 
 	private reorderWithin(
@@ -357,11 +485,7 @@ export class NavigatorView extends ItemView {
 	private clearDropIndicator(rowEl: HTMLElement): void {
 		rowEl.removeClass('is-drop-before');
 		rowEl.removeClass('is-drop-after');
-	}
-
-	private isAbove(event: DragEvent, el: HTMLElement): boolean {
-		const rect = el.getBoundingClientRect();
-		return event.clientY < rect.top + rect.height / 2;
+		rowEl.removeClass('is-drop-into');
 	}
 
 	private toggleCollapse(path: string): void {

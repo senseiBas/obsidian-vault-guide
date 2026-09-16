@@ -7,7 +7,8 @@ A minimal vault navigator for [Obsidian](https://obsidian.md): a lightweight alt
 - **Folder tree** in its own side pane, with files shown inside each folder. Folders expand/collapse (per folder and collapse-all / expand-all) and the state is remembered between sessions.
 - **Open notes** — click a file to open it in the main editor pane.
 - **New folder** — a toolbar button creates a folder in the vault root.
-- **Manual folder ordering** — drag a folder to reorder it among its siblings. The order is stored in the plugin's own data, so it is purely a display order; ordering never moves or renames folders on disk.
+- **Manual folder ordering** — drag a folder onto the top or bottom edge of a sibling to reorder it. The order is stored in the plugin's own data, so it is purely a display order; reordering never moves or renames folders on disk.
+- **Move by drag** — drop a file or folder onto the middle of a folder to move it inside, or onto the empty area of the tree to move it to the vault root. This performs a real file-system move (via Obsidian's link-aware rename).
 - **Emoji folder icons** — right-click a folder and choose from the full Unicode emoji set (rendered in your operating system's own style). Icons are display-only overlays and are never written into folder names.
 - **Hide folders by regex** — set regex patterns (one per line) in the plugin settings to hide matching folders; toggle the eye button in the navigator to reveal them, greyed out.
 - **Native context menu** — right-clicking a folder or file shows Obsidian's usual actions (and those added by other plugins).

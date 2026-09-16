@@ -75,6 +75,16 @@
 	box-shadow: inset 0 -2px 0 0 var(--interactive-accent);
 }
 
+.vault-guide-row.is-drop-into {
+	background: var(--background-modifier-hover);
+	box-shadow: inset 0 0 0 1px var(--interactive-accent);
+}
+
+.vault-guide-tree.is-drop-root {
+	box-shadow: inset 0 0 0 2px var(--interactive-accent);
+	border-radius: var(--radius-s);
+}
+
 .vault-guide-chevron {
 	display: inline-flex;
 	align-items: center;
