@@ -1,21 +1,24 @@
 # Vault Guide
 
-A minimal, **view-only** vault navigator for [Obsidian](https://obsidian.md). A lightweight alternative to heavier file-explorer replacements: it does just two things, and it never touches your file system.
+A minimal vault navigator for [Obsidian](https://obsidian.md): a lightweight alternative to heavier file-explorer replacements. Its display state (order, icons, collapse, hide patterns) lives entirely in the plugin's own data and never rearranges your files on disk.
 
-## Features (iteration 1)
+## Features
 
-- **Folder tree** in its own side pane, with collapse/expand (per folder and collapse-all / expand-all) that is remembered between sessions.
-- **Manual folder ordering** — drag a folder to reorder it among its siblings. The order is stored in the plugin's own data, so it is purely a display order; your files and folders on disk are never moved or renamed.
+- **Folder tree** in its own side pane, with files shown inside each folder. Folders expand/collapse (per folder and collapse-all / expand-all) and the state is remembered between sessions.
+- **Open notes** — click a file to open it in the main editor pane.
+- **New folder** — a toolbar button creates a folder in the vault root.
+- **Manual folder ordering** — drag a folder to reorder it among its siblings. The order is stored in the plugin's own data, so it is purely a display order; ordering never moves or renames folders on disk.
 - **Emoji folder icons** — right-click a folder and choose from the full Unicode emoji set (rendered in your operating system's own style). Icons are display-only overlays and are never written into folder names.
-- **Native context menu** — right-clicking a folder still shows Obsidian's usual folder actions (and those added by other plugins), with the icon options added below.
+- **Hide folders by regex** — set regex patterns (one per line) in the plugin settings to hide matching folders; toggle the eye button in the navigator to reveal them, greyed out.
+- **Native context menu** — right-clicking a folder or file shows Obsidian's usual actions (and those added by other plugins).
 
-Everything Vault Guide stores lives in the plugin's `data.json`. It performs **no** vault mutations: no renames, no moves, no writes to your notes.
+The overlay state (order, icons, collapse, hide patterns) never mutates the vault. Explicit actions you take — creating a folder, opening a note, or using the native context menu — do exactly what they say.
 
 ## Usage
 
 1. Enable the plugin in **Settings → Community plugins**.
 2. Open the navigator via the ribbon compass icon or the command **Open Vault Guide**.
-3. Drag folders to reorder them; right-click a folder to set or remove its emoji icon.
+3. Drag folders to reorder them; right-click a folder to set or remove its emoji icon; click a file to open it.
 
 ## Development
 

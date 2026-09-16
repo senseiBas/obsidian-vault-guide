@@ -1,4 +1,4 @@
-import { ItemView, Menu, TFolder, setIcon } from 'obsidian';
+import { ItemView, Menu, Notice, TFile, TFolder, setIcon } from 'obsidian';
 import type { WorkspaceLeaf } from 'obsidian';
 import { VIEW_ICON, VIEW_NAME, VIEW_TYPE } from '../constants';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../tree/order';
 import { compileHidePatterns, isHiddenName } from '../tree/hidden';
 import { requestEmoji } from './emoji-picker';
+import { requestText } from './prompt-modal';
 import type VaultGuidePlugin from '../main';
 
 const DRAG_MIME = 'application/x-vault-guide-folder';
@@ -61,6 +62,13 @@ export class NavigatorView extends ItemView {
 	private buildToolbar(): void {
 		const toolbarEl = this.contentEl.createDiv('vault-guide-toolbar');
 
+		const newFolderBtn = toolbarEl.createEl('button', {
+			cls: 'vault-guide-toolbar-btn',
+			attr: { 'aria-label': 'New folder' },
+		});
+		setIcon(newFolderBtn, 'folder-plus');
+		newFolderBtn.addEventListener('click', () => void this.createNewFolder());
+
 		const collapseBtn = toolbarEl.createEl('button', {
 			cls: 'vault-guide-toolbar-btn',
 			attr: { 'aria-label': 'Collapse all' },
@@ -113,20 +121,36 @@ export class NavigatorView extends ItemView {
 		this.render();
 	}
 
-	/** Every folder path that has at least one subfolder (so is collapsible). */
+	/** Every folder path that has children (so is collapsible). */
 	private allCollapsibleFolderPaths(): string[] {
 		const paths: string[] = [];
 		const walk = (folder: TFolder): void => {
 			for (const child of folder.children) {
 				if (!(child instanceof TFolder)) continue;
-				if (child.children.some((c) => c instanceof TFolder)) {
-					paths.push(child.path);
-				}
+				if (child.children.length > 0) paths.push(child.path);
 				walk(child);
 			}
 		};
 		walk(this.app.vault.getRoot());
 		return paths;
+	}
+
+	private async createNewFolder(): Promise<void> {
+		const name = await requestText(
+			this.app,
+			'New folder',
+			'Folder name',
+		);
+		if (!name) return;
+		try {
+			await this.app.vault.createFolder(name);
+		} catch (error) {
+			new Notice(
+				`Could not create folder: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+			);
+		}
 	}
 
 	/** React to folder changes: keep display state in sync and re-render. */
@@ -145,9 +169,7 @@ export class NavigatorView extends ItemView {
 			}),
 		);
 		this.registerEvent(
-			this.app.vault.on('create', (file) => {
-				if (file instanceof TFolder) this.render();
-			}),
+			this.app.vault.on('create', () => this.render()),
 		);
 		this.registerEvent(this.app.vault.on('delete', () => this.render()));
 	}
@@ -171,7 +193,6 @@ export class NavigatorView extends ItemView {
 		const subfolders = parent.children.filter(
 			(child): child is TFolder => child instanceof TFolder,
 		);
-		if (subfolders.length === 0) return;
 
 		const byPath = new Map(subfolders.map((folder) => [folder.path, folder]));
 		const ordered = orderFolderPaths(
@@ -187,6 +208,16 @@ export class NavigatorView extends ItemView {
 			if (hidden && !showHidden) continue;
 			this.renderFolder(containerEl, folder, hidden);
 		}
+
+		// Files come after folders, in natural alphabetical order.
+		const files = parent.children
+			.filter((child): child is TFile => child instanceof TFile)
+			.sort((a, b) =>
+				a.basename.localeCompare(b.basename, undefined, {
+					sensitivity: 'base',
+				}),
+			);
+		for (const file of files) this.renderFile(containerEl, file);
 	}
 
 	private renderFolder(
@@ -194,9 +225,7 @@ export class NavigatorView extends ItemView {
 		folder: TFolder,
 		hidden: boolean,
 	): void {
-		const hasSubfolders = folder.children.some(
-			(child) => child instanceof TFolder,
-		);
+		const hasChildren = folder.children.length > 0;
 		const collapsed = this.plugin.settings.collapsed.includes(folder.path);
 
 		const rowEl = containerEl.createDiv('vault-guide-row');
@@ -205,7 +234,7 @@ export class NavigatorView extends ItemView {
 		if (hidden) rowEl.addClass('is-hidden-folder');
 
 		const chevron = rowEl.createSpan('vault-guide-chevron');
-		if (hasSubfolders) {
+		if (hasChildren) {
 			setIcon(chevron, collapsed ? 'chevron-right' : 'chevron-down');
 			chevron.addEventListener('click', (event) => {
 				event.stopPropagation();
@@ -223,7 +252,7 @@ export class NavigatorView extends ItemView {
 		rowEl.createSpan({ cls: 'vault-guide-name', text: folder.name });
 
 		rowEl.addEventListener('click', () => {
-			if (hasSubfolders) this.toggleCollapse(folder.path);
+			if (hasChildren) this.toggleCollapse(folder.path);
 		});
 		rowEl.addEventListener('contextmenu', (event) =>
 			this.showContextMenu(event, folder),
@@ -231,10 +260,33 @@ export class NavigatorView extends ItemView {
 
 		this.setupDrag(rowEl, folder);
 
-		if (hasSubfolders && !collapsed) {
+		if (hasChildren && !collapsed) {
 			const childrenEl = containerEl.createDiv('vault-guide-children');
 			this.renderChildren(childrenEl, folder);
 		}
+	}
+
+	private renderFile(containerEl: HTMLElement, file: TFile): void {
+		const rowEl = containerEl.createDiv('vault-guide-row vault-guide-file');
+		rowEl.dataset.path = file.path;
+
+		rowEl.createSpan('vault-guide-chevron').addClass('is-empty');
+
+		const iconEl = rowEl.createSpan('vault-guide-icon');
+		setIcon(iconEl, file.extension === 'md' ? 'file-text' : 'file');
+
+		const label = file.extension === 'md' ? file.basename : file.name;
+		rowEl.createSpan({ cls: 'vault-guide-name', text: label });
+
+		rowEl.addEventListener('click', () => {
+			void this.app.workspace.openLinkText(file.path, '', false);
+		});
+		rowEl.addEventListener('contextmenu', (event) => {
+			event.preventDefault();
+			const menu = new Menu();
+			this.app.workspace.trigger('file-menu', menu, file, 'vault-guide');
+			menu.showAtMouseEvent(event);
+		});
 	}
 
 	private setupDrag(rowEl: HTMLElement, folder: TFolder): void {

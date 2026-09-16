@@ -108,6 +108,14 @@
 	padding-left: 1.1em;
 }
 
+.vault-guide-file .vault-guide-icon {
+	color: var(--text-faint);
+}
+
+.vault-guide-prompt-input {
+	width: 100%;
+}
+
 .vault-guide-emoji-modal {
 	width: min(560px, 90vw);
 }
