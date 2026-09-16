@@ -6,7 +6,7 @@ import {
 	orderFolderPaths,
 	reorderSiblings,
 } from '../tree/order';
-import { requestFolderIcon } from './icon-modal';
+import { requestEmoji } from './emoji-picker';
 import type VaultGuidePlugin from '../main';
 
 const DRAG_MIME = 'application/x-vault-guide-folder';
@@ -43,6 +43,7 @@ export class NavigatorView extends ItemView {
 	protected async onOpen(): Promise<void> {
 		this.contentEl.empty();
 		this.contentEl.addClass('vault-guide');
+		this.buildToolbar();
 		this.treeEl = this.contentEl.createDiv('vault-guide-tree');
 		this.registerVaultEvents();
 		this.render();
@@ -50,6 +51,52 @@ export class NavigatorView extends ItemView {
 
 	protected async onClose(): Promise<void> {
 		this.contentEl.empty();
+	}
+
+	private buildToolbar(): void {
+		const toolbarEl = this.contentEl.createDiv('vault-guide-toolbar');
+
+		const collapseBtn = toolbarEl.createEl('button', {
+			cls: 'vault-guide-toolbar-btn',
+			attr: { 'aria-label': 'Collapse all' },
+		});
+		setIcon(collapseBtn, 'chevrons-down-up');
+		collapseBtn.addEventListener('click', () => this.collapseAll());
+
+		const expandBtn = toolbarEl.createEl('button', {
+			cls: 'vault-guide-toolbar-btn',
+			attr: { 'aria-label': 'Expand all' },
+		});
+		setIcon(expandBtn, 'chevrons-up-down');
+		expandBtn.addEventListener('click', () => this.expandAll());
+	}
+
+	private collapseAll(): void {
+		this.plugin.settings.collapsed = this.allCollapsibleFolderPaths();
+		void this.plugin.saveSettings();
+		this.render();
+	}
+
+	private expandAll(): void {
+		this.plugin.settings.collapsed = [];
+		void this.plugin.saveSettings();
+		this.render();
+	}
+
+	/** Every folder path that has at least one subfolder (so is collapsible). */
+	private allCollapsibleFolderPaths(): string[] {
+		const paths: string[] = [];
+		const walk = (folder: TFolder): void => {
+			for (const child of folder.children) {
+				if (!(child instanceof TFolder)) continue;
+				if (child.children.some((c) => c instanceof TFolder)) {
+					paths.push(child.path);
+				}
+				walk(child);
+			}
+		};
+		walk(this.app.vault.getRoot());
+		return paths;
 	}
 
 	/** React to folder changes: keep display state in sync and re-render. */
@@ -229,6 +276,12 @@ export class NavigatorView extends ItemView {
 	private showContextMenu(event: MouseEvent, folder: TFolder): void {
 		event.preventDefault();
 		const menu = new Menu();
+		// Let Obsidian core and other plugins add all their usual folder actions
+		// (New note, New folder, Move folder to…, Rename, Delete, and third-party
+		// items like Doom scroll folder or Reveal in Notebook Navigator).
+		this.app.workspace.trigger('file-menu', menu, folder, 'vault-guide');
+
+		menu.addSeparator();
 		menu.addItem((item) =>
 			item
 				.setTitle('Set icon…')
@@ -239,7 +292,7 @@ export class NavigatorView extends ItemView {
 			menu.addItem((item) =>
 				item
 					.setTitle('Remove icon')
-					.setIcon('trash')
+					.setIcon('trash-2')
 					.onClick(() => this.setIconValue(folder.path, null)),
 			);
 		}
@@ -248,7 +301,7 @@ export class NavigatorView extends ItemView {
 
 	private async pickIcon(folder: TFolder): Promise<void> {
 		const current = this.plugin.settings.folderIcons[folder.path] ?? '';
-		const result = await requestFolderIcon(this.app, folder.name, current);
+		const result = await requestEmoji(this.app, folder.name, current);
 		if (result === undefined) return;
 		this.setIconValue(folder.path, result === '' ? null : result);
 	}

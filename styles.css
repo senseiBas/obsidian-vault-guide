@@ -1,6 +1,36 @@
 .vault-guide {
-	padding: var(--size-4-1) 0;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 0;
+}
+
+.vault-guide-toolbar {
+	display: flex;
+	gap: var(--size-2-2);
+	padding: var(--size-4-1) var(--size-4-2);
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex: 0 0 auto;
+}
+
+.vault-guide-toolbar-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2px 6px;
+	color: var(--text-muted);
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.vault-guide-toolbar-btn:hover {
+	color: var(--text-normal);
+}
+
+.vault-guide-tree {
+	flex: 1 1 auto;
 	overflow-y: auto;
+	padding: var(--size-4-1) 0;
 }
 
 .vault-guide-row {
@@ -62,16 +92,64 @@
 	padding-left: 1.1em;
 }
 
-.vault-guide-emoji-quick {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--size-2-2);
-	margin: var(--size-4-2) 0;
+.vault-guide-emoji-modal {
+	width: min(560px, 90vw);
 }
 
-.vault-guide-emoji-btn {
-	font-size: 1.2em;
+.vault-guide-emoji-search {
+	width: 100%;
+	margin-bottom: var(--size-4-2);
+}
+
+.vault-guide-emoji-grid {
+	max-height: 50vh;
+	overflow-y: auto;
+}
+
+.vault-guide-emoji-cat {
+	position: sticky;
+	top: 0;
+	background: var(--background-primary);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	padding: var(--size-4-1) var(--size-2-1);
+	z-index: 1;
+}
+
+.vault-guide-emoji-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+}
+
+.vault-guide-emoji-cell {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2em;
+	height: 2em;
+	font-size: 1.3em;
 	line-height: 1;
-	padding: 4px 8px;
+	border-radius: var(--radius-s);
 	cursor: pointer;
+}
+
+.vault-guide-emoji-cell:hover {
+	background: var(--background-modifier-hover);
+}
+
+.vault-guide-emoji-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--size-2-2);
+	margin-top: var(--size-4-2);
+}
+
+.vault-guide-emoji-empty {
+	color: var(--text-muted);
+	padding: var(--size-4-4);
+	text-align: center;
 }
