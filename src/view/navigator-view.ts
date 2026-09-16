@@ -173,6 +173,10 @@ export class NavigatorView extends ItemView {
 			this.app.vault.on('create', () => this.render()),
 		);
 		this.registerEvent(this.app.vault.on('delete', () => this.render()));
+		// A file's `hidden` frontmatter can change its visibility here.
+		this.registerEvent(
+			this.app.metadataCache.on('changed', () => this.render()),
+		);
 	}
 
 	/** Public re-render hook, used after settings changes. */
@@ -218,7 +222,18 @@ export class NavigatorView extends ItemView {
 					sensitivity: 'base',
 				}),
 			);
-		for (const file of files) this.renderFile(containerEl, file);
+		for (const file of files) {
+			const hidden = this.isFileHidden(file);
+			if (hidden && !showHidden) continue;
+			this.renderFile(containerEl, file, hidden);
+		}
+	}
+
+	/** True when a file carries a frontmatter `hidden: true` property. */
+	private isFileHidden(file: TFile): boolean {
+		const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+		const value: unknown = frontmatter?.hidden;
+		return value === true || value === 'true';
 	}
 
 	private renderFolder(
@@ -267,10 +282,15 @@ export class NavigatorView extends ItemView {
 		}
 	}
 
-	private renderFile(containerEl: HTMLElement, file: TFile): void {
+	private renderFile(
+		containerEl: HTMLElement,
+		file: TFile,
+		hidden: boolean,
+	): void {
 		const rowEl = containerEl.createDiv('vault-guide-row vault-guide-file');
 		rowEl.dataset.path = file.path;
 		rowEl.setAttribute('draggable', 'true');
+		if (hidden) rowEl.addClass('is-hidden');
 
 		rowEl.createSpan('vault-guide-chevron').addClass('is-empty');
 

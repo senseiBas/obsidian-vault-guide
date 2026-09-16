@@ -38,5 +38,13 @@ export class VaultGuideSettingTab extends PluginSettingTab {
 				text.inputEl.rows = 5;
 				text.inputEl.addClass('vault-guide-pattern-input');
 			});
+
+		new Setting(containerEl)
+			.setName('Hidden files')
+			.setDesc(
+				'Tip: any note with a frontmatter property "hidden: true" is also ' +
+					'hidden in the navigator. Use the eye button in the navigator to ' +
+					'reveal hidden folders and files (shown greyed).',
+			);
 	}
 }

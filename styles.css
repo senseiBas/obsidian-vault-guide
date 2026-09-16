@@ -32,7 +32,9 @@
 }
 
 .vault-guide-row.is-hidden-folder .vault-guide-icon,
-.vault-guide-row.is-hidden-folder .vault-guide-name {
+.vault-guide-row.is-hidden-folder .vault-guide-name,
+.vault-guide-row.is-hidden .vault-guide-icon,
+.vault-guide-row.is-hidden .vault-guide-name {
 	color: var(--text-faint);
 	font-style: italic;
 }
