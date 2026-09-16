@@ -1,0 +1,77 @@
+.vault-guide {
+	padding: var(--size-4-1) 0;
+	overflow-y: auto;
+}
+
+.vault-guide-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	padding: 3px var(--size-4-2);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	user-select: none;
+}
+
+.vault-guide-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.vault-guide-row.is-dragging {
+	opacity: 0.5;
+}
+
+.vault-guide-row.is-drop-before {
+	box-shadow: inset 0 2px 0 0 var(--interactive-accent);
+}
+
+.vault-guide-row.is-drop-after {
+	box-shadow: inset 0 -2px 0 0 var(--interactive-accent);
+}
+
+.vault-guide-chevron {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.2em;
+	flex: 0 0 auto;
+	color: var(--text-muted);
+}
+
+.vault-guide-chevron.is-empty {
+	visibility: hidden;
+}
+
+.vault-guide-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.4em;
+	flex: 0 0 auto;
+	color: var(--text-muted);
+}
+
+.vault-guide-name {
+	flex: 1 1 auto;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.vault-guide-children {
+	padding-left: 1.1em;
+}
+
+.vault-guide-emoji-quick {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-2-2);
+	margin: var(--size-4-2) 0;
+}
+
+.vault-guide-emoji-btn {
+	font-size: 1.2em;
+	line-height: 1;
+	padding: 4px 8px;
+	cursor: pointer;
+}
