@@ -12,6 +12,7 @@ A minimal vault navigator for [Obsidian](https://obsidian.md): a lightweight alt
 - **Emoji folder icons** — right-click a folder and choose from the full Unicode emoji set (rendered in your operating system's own style). Icons are display-only overlays and are never written into folder names.
 - **Hide folders by regex** — set regex patterns (one per line) in the plugin settings to hide matching folders; toggle the eye button in the navigator to reveal them, greyed out.
 - **Native context menu** — right-clicking a folder or file shows Obsidian's usual actions (and those added by other plugins).
+- **Calendar pane** — a separate month view that shows a dot on every day that has a daily note. Click a day to open its note, hover to see Obsidian's page preview, and use the arrows / today button to navigate months. The daily-note folder and format are detected from the core Daily Notes plugin (or Periodic Notes as a fallback).
 
 The overlay state (order, icons, collapse, hide patterns) never mutates the vault. Explicit actions you take — creating a folder, opening a note, or using the native context menu — do exactly what they say.
 

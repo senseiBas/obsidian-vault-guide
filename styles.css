@@ -126,6 +126,90 @@
 	width: 100%;
 }
 
+/* Calendar view */
+.vault-guide-calendar {
+	padding: var(--size-4-2);
+	user-select: none;
+}
+
+.vault-guide-cal-header {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	margin-bottom: var(--size-4-2);
+}
+
+.vault-guide-cal-title {
+	flex: 1 1 auto;
+	font-weight: var(--font-semibold);
+	text-align: center;
+}
+
+.vault-guide-cal-today-btn {
+	margin-left: auto;
+}
+
+.vault-guide-cal-weekdays,
+.vault-guide-cal-grid {
+	display: grid;
+	grid-template-columns: 1.6em repeat(7, 1fr);
+	gap: 2px;
+}
+
+.vault-guide-cal-weekday {
+	text-align: center;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	padding: var(--size-2-1) 0;
+}
+
+.vault-guide-cal-weeknum {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+
+.vault-guide-cal-day {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	aspect-ratio: 1 / 1;
+	border-radius: var(--radius-s);
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+}
+
+.vault-guide-cal-day.is-outside {
+	color: var(--text-faint);
+}
+
+.vault-guide-cal-day.is-today {
+	background: var(--background-modifier-hover);
+	font-weight: var(--font-semibold);
+	box-shadow: inset 0 0 0 1px var(--interactive-accent);
+}
+
+.vault-guide-cal-day.has-note {
+	cursor: pointer;
+}
+
+.vault-guide-cal-day.has-note:hover {
+	background: var(--background-modifier-hover);
+}
+
+.vault-guide-cal-dot {
+	position: absolute;
+	bottom: 0.25em;
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+	background: var(--interactive-accent);
+}
+
 .vault-guide-emoji-modal {
 	width: min(560px, 90vw);
 }
